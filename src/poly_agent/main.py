@@ -11,6 +11,7 @@ import sentry_sdk
 from poly_agent import alerts
 from poly_agent.db import db
 from poly_agent.decision import decide
+from poly_agent.halt import is_halted
 from poly_agent.models import Signal
 from poly_agent.polymarket import get_market
 from poly_agent.positions import position_loop
@@ -75,6 +76,7 @@ async def _open_position(intent, signal: Signal) -> None:
 
 
 async def _handle_signal(signal: Signal) -> None:
+    halted = await is_halted()
     cfg = await db.get_active_poly_config(signal.asset)
     open_total = await db.open_stake_total_usd()
     has_dup = await db.has_open_on_market(signal.asset)
@@ -83,7 +85,7 @@ async def _handle_signal(signal: Signal) -> None:
         signal=signal, agent_config=cfg,
         open_total_stake_usd=open_total,
         has_open_on_market=has_dup,
-        halt=settings.poly_agent_halt,
+        halt=halted,
     )
     if intent is None:
         log.info("Skipped poly signal %s (%s %s conf=%.2f): %s",
