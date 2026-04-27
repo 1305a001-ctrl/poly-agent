@@ -117,7 +117,8 @@ class DB:
 
     async def reject_position(self, pid: UUID, reason: str) -> None:
         await self.pool.execute(
-            "UPDATE poly_positions SET status = 'error', errors = errors || $2::jsonb WHERE id = $1",
+            "UPDATE poly_positions SET status = 'error', errors = errors || $2::jsonb"
+            " WHERE id = $1",
             pid, [reason],
         )
 
