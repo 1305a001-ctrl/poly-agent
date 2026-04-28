@@ -1,36 +1,13 @@
-import json
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
+from signals_contract import Signal
 
-
-class Signal(BaseModel):
-    """Inbound signal from Redis (matches news-consolidator INTEGRATION.md)."""
-    id: UUID
-    strategy_id: UUID
-    research_config_id: UUID
-    strategy_git_sha: str
-    research_config_version: int
-    asset: str  # for poly signals, this is the market slug (matches agent_config.slug)
-    direction: Literal["long", "short", "neutral", "watch"]
-    confidence: float = Field(ge=0.0, le=1.0)
-    composite_risk_score: float | None = None
-    risk_score: dict | None = None
-    source_article_ids: list[UUID] = Field(default_factory=list)
-    payload: dict = Field(default_factory=dict)
-    published_at: datetime
-
-    @field_validator("risk_score", "payload", mode="before")
-    @classmethod
-    def _parse_json_string(cls, v: Any) -> Any:
-        if isinstance(v, str):
-            try:
-                return json.loads(v)
-            except json.JSONDecodeError:
-                return v
-        return v
+# Re-export Signal so existing imports of `from poly_agent.models import Signal` keep working.
+# For poly signals, Signal.asset is the Polymarket market slug (matches agent_configs.slug).
+__all__ = ["Signal", "PolyMarket", "PolyIntent", "Fill"]
 
 
 class PolyMarket(BaseModel):
