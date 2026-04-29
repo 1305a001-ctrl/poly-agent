@@ -31,14 +31,20 @@ async def _settle(pos, market) -> None:
         resolved_outcome=market.winner, close_reason="resolved", closed_at=closed_at,
     )
 
-    horizon_h = (closed_at - pos["opened_at"]).total_seconds() / 3600 if pos["opened_at"] else 0
+    # Outcome row labeled 'poly_resolved' so consistency_scores treats
+    # poly settlements as their own bucket, distinct from outcome-scorer
+    # horizon evaluations (which can't score poly markets anyway — no spot price).
+    duration_h = (closed_at - pos["opened_at"]).total_seconds() / 3600 if pos["opened_at"] else 0
     await db.write_signal_outcome(
         signal_id=pos["signal_id"],
-        horizon=f"{horizon_h:.1f}h",
+        horizon="poly_resolved",
         outcome="win" if pnl > 0 else ("loss" if pnl < 0 else "flat"),
         price_at_signal=entry,
         price_at_eval=exit_prob,
-        notes=f"poly resolved {market.winner} (paper)",
+        notes=(
+            f"poly resolved {market.winner} after {duration_h:.1f}h "
+            f"(paper, pnl=${pnl:+.2f})"
+        ),
     )
 
     await alerts.telegram(alerts.format_close(
